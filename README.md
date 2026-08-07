@@ -28,25 +28,26 @@
 
 ## 安装
 
-本仓库发布的是可直接导入 Eagle 的插件源码，不包含 `.eagleplugin` 安装包。
+Release 同时提供可直接安装的 `.eagleplugin` 文件和 GitHub 自动生成的源码压缩包。
 
-### 从 GitHub 下载
+### 直接安装（推荐）
 
 1. 打开 [Releases](https://github.com/zyc2pi/eagle-quickrail/releases)，进入 `v1.0.0`。
-2. 下载并解压 `Source code (zip)`。
-3. 在 Eagle 中打开插件面板（默认快捷键 `P`）。
-4. 右键插件面板，选择“开发者选项 → 导入本地项目”。
-5. 选择解压后包含 `manifest.json` 的 `eagle-quickrail` 文件夹。
+2. 下载 `文件夹快捷轨-v1.0.0.eagleplugin`。
+3. 双击安装包，按 Eagle 提示完成安装。
+
+### 导入源码
+
+1. 在 Release 中下载并解压 `Source code (zip)`，或使用下方 Git 命令克隆仓库。
+2. 在 Eagle 中打开插件面板（默认快捷键 `P`）。
+3. 右键插件面板，选择“开发者选项 → 导入本地项目”。
+4. 选择包含 `manifest.json` 的仓库目录。
 
 ### 使用 Git 克隆
 
 ```powershell
 git clone https://github.com/zyc2pi/eagle-quickrail.git
 ```
-
-1. 在 Eagle 中打开插件面板（默认快捷键 `P`）。
-2. 右键插件面板，选择“开发者选项 → 导入本地项目”。
-3. 选择克隆后的仓库目录（其中应直接包含 `manifest.json`）。
 
 ## 使用
 
