@@ -1,0 +1,17 @@
+{
+  "name": "eagle-quickrail",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Eagle 文件夹快捷轨：常用目录置顶、快速导航和窗口联动",
+  "author": "zyc2pi",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/zyc2pi/eagle-quickrail.git"
+  },
+  "bugs": "https://github.com/zyc2pi/eagle-quickrail/issues",
+  "homepage": "https://github.com/zyc2pi/eagle-quickrail#readme",
+  "scripts": {
+    "test": "node --test tests/*.test.js"
+  },
+  "license": "MIT"
+}

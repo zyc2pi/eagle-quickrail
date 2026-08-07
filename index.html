@@ -1,0 +1,372 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no"
+    />
+    <meta name="color-scheme" content="dark light" />
+    <title>文件夹快捷轨</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <main class="app-shell" id="appShell" data-theme="dark">
+      <header class="rail drag-region" id="rail" aria-label="文件夹快捷入口">
+        <div class="brand" title="按住空白区域可拖动快捷轨">
+          <span class="brand-mark" aria-hidden="true">
+            <svg viewBox="0 0 24 24">
+              <path d="M3.5 6.75h6l1.7 2h9.3v9.5H3.5z" />
+              <path d="M7 12.25h10M12 9.75v5" />
+            </svg>
+          </span>
+          <span class="brand-copy">
+            <strong>快捷轨</strong>
+            <small id="syncLabel">同步中</small>
+          </span>
+        </div>
+
+        <div class="rail-divider" aria-hidden="true"></div>
+
+        <nav class="pinned-viewport" aria-label="已置顶文件夹">
+          <button
+            class="scroll-nudge left"
+            id="scrollLeftButton"
+            type="button"
+            aria-label="向左滚动"
+          >
+            <svg viewBox="0 0 24 24"><path d="m14.5 6-6 6 6 6" /></svg>
+          </button>
+          <div class="pinned-list" id="pinnedList"></div>
+          <button
+            class="scroll-nudge right"
+            id="scrollRightButton"
+            type="button"
+            aria-label="向右滚动"
+          >
+            <svg viewBox="0 0 24 24"><path d="m9.5 6 6 6-6 6" /></svg>
+          </button>
+        </nav>
+
+        <div class="rail-actions no-drag">
+          <button
+            class="icon-button"
+            id="dockButton"
+            type="button"
+            title="联动吸附：移动 Eagle 或快捷轨时一起移动"
+            aria-label="联动吸附"
+          >
+            <svg viewBox="0 0 24 24">
+              <path d="M9.5 14.5l5-5M7 17H5.5a3.5 3.5 0 0 1 0-7H9M15 10h3.5a3.5 3.5 0 0 1 0 7H15" />
+            </svg>
+            <span class="state-dot"></span>
+          </button>
+          <button
+            class="icon-button"
+            id="topmostButton"
+            type="button"
+            title="切换系统置顶"
+            aria-label="切换系统置顶"
+          >
+            <svg viewBox="0 0 24 24">
+              <path d="m8 4 8 8M14.5 3.5l6 6-4 1.5-4 4-1.5 4-6-6 4-1.5 4-4z" />
+            </svg>
+            <span class="state-dot"></span>
+          </button>
+          <button
+            class="manage-button"
+            id="manageButton"
+            type="button"
+            aria-expanded="false"
+            aria-controls="managerPanel"
+          >
+            <svg viewBox="0 0 24 24">
+              <path d="M12 5v14M5 12h14" />
+            </svg>
+            <span>管理</span>
+          </button>
+          <button
+            class="icon-button hide-button"
+            id="hideButton"
+            type="button"
+            title="隐藏快捷轨（可从插件面板再次打开）"
+            aria-label="隐藏快捷轨"
+          >
+            <svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6 6 18" /></svg>
+          </button>
+        </div>
+
+        <div
+          class="pin-context-strip no-drag"
+          id="pinContextStrip"
+          role="dialog"
+          aria-label="快捷入口设置"
+          aria-hidden="true"
+          hidden
+        >
+          <div class="pin-context-identity">
+            <span class="pin-context-icon" id="pinContextIcon" aria-hidden="true"></span>
+            <span class="pin-context-copy">
+              <small>正在编辑</small>
+              <strong id="pinContextName">快捷入口</strong>
+            </span>
+          </div>
+
+          <div class="pin-context-divider" aria-hidden="true"></div>
+
+          <div class="pin-context-colors">
+            <span class="pin-context-label">快捷色</span>
+            <div class="pin-context-palette" id="pinContextPalette" role="group" aria-label="快捷入口颜色">
+              <button
+                class="pin-color-reset"
+                id="pinContextResetColor"
+                type="button"
+                data-pin-color=""
+                title="恢复文件夹原色"
+                aria-label="恢复文件夹原色"
+              >
+                原
+              </button>
+              <button type="button" data-pin-color="red" title="红色" aria-label="红色"></button>
+              <button type="button" data-pin-color="orange" title="橙色" aria-label="橙色"></button>
+              <button type="button" data-pin-color="yellow" title="黄色" aria-label="黄色"></button>
+              <button type="button" data-pin-color="green" title="绿色" aria-label="绿色"></button>
+              <button type="button" data-pin-color="aqua" title="青色" aria-label="青色"></button>
+              <button type="button" data-pin-color="blue" title="蓝色" aria-label="蓝色"></button>
+              <button type="button" data-pin-color="purple" title="紫色" aria-label="紫色"></button>
+              <button type="button" data-pin-color="pink" title="粉色" aria-label="粉色"></button>
+            </div>
+          </div>
+
+          <div class="pin-context-actions" id="pinContextActions">
+            <div class="pin-context-size-actions">
+              <button
+                class="pin-context-size"
+                id="pinContextAdjustLengthButton"
+                type="button"
+              >
+                调长度
+              </button>
+              <button
+                class="pin-context-size"
+                id="pinContextResetLengthButton"
+                type="button"
+              >
+                默认长度
+              </button>
+            </div>
+            <button class="pin-context-remove" id="pinContextRemoveButton" type="button">
+              从快捷轨移除
+            </button>
+            <button
+              class="pin-context-close"
+              id="pinContextCloseButton"
+              type="button"
+              title="关闭"
+              aria-label="关闭快捷入口设置"
+            >
+              <svg viewBox="0 0 24 24"><path d="M7 7l10 10M17 7 7 17" /></svg>
+            </button>
+          </div>
+
+          <div class="pin-context-confirm" id="pinContextConfirm" hidden>
+            <span>确认只从快捷轨移除？</span>
+            <button
+              class="pin-context-confirm-remove"
+              id="pinContextConfirmRemoveButton"
+              type="button"
+            >
+              确认移除
+            </button>
+            <button
+              class="pin-context-cancel"
+              id="pinContextCancelRemoveButton"
+              type="button"
+            >
+              取消
+            </button>
+          </div>
+        </div>
+
+        <div
+          class="pin-length-actions no-drag"
+          id="pinLengthActions"
+          aria-hidden="true"
+          hidden
+        >
+          <span class="pin-length-readout">
+            <small>卡片长度</small>
+            <strong id="pinLengthValue">0px</strong>
+          </span>
+          <button
+            class="pin-length-confirm"
+            id="pinLengthConfirmButton"
+            type="button"
+            title="确认长度"
+            aria-label="确认长度"
+          >
+            <svg viewBox="0 0 24 24"><path d="m6 12 4 4 8-9" /></svg>
+          </button>
+          <button
+            class="pin-length-cancel"
+            id="pinLengthCancelButton"
+            type="button"
+            title="取消调整"
+            aria-label="取消调整"
+          >
+            <svg viewBox="0 0 24 24"><path d="M7 7l10 10M17 7 7 17" /></svg>
+          </button>
+        </div>
+      </header>
+
+      <section class="manager-panel" id="managerPanel" aria-hidden="true">
+        <div class="manager-heading">
+          <div>
+            <p class="eyebrow">QUICK ACCESS / 实时同步</p>
+            <h1>把常用目录留在手边</h1>
+          </div>
+          <div class="library-chip">
+            <span class="pulse" aria-hidden="true"></span>
+            <span id="libraryName">当前资源库</span>
+          </div>
+        </div>
+
+        <div class="manager-grid">
+          <section class="folder-picker" aria-labelledby="folderPickerTitle">
+            <div class="section-toolbar">
+              <div class="section-title">
+                <h2 id="folderPickerTitle">选择快捷入口</h2>
+                <p id="folderCount">正在读取文件夹…</p>
+                <div class="tree-actions" aria-label="文件夹树操作">
+                  <button id="expandAllButton" type="button">全部展开</button>
+                  <span aria-hidden="true">/</span>
+                  <button id="collapseAllButton" type="button">全部收起</button>
+                </div>
+              </div>
+              <label class="search-box">
+                <svg viewBox="0 0 24 24">
+                  <circle cx="10.8" cy="10.8" r="6.3" />
+                  <path d="m15.5 15.5 4 4" />
+                </svg>
+                <input
+                  id="searchInput"
+                  type="search"
+                  placeholder="搜索名称或完整路径"
+                  autocomplete="off"
+                  spellcheck="false"
+                />
+                <kbd>/</kbd>
+              </label>
+            </div>
+            <div class="folder-list" id="folderList" role="tree" aria-multiselectable="true"></div>
+            <div class="empty-state" id="emptyState" hidden>
+              <svg viewBox="0 0 48 48">
+                <path d="M8 15h13l3 4h16v19H8z" />
+                <path d="m18 28 12 0" />
+              </svg>
+              <p>没有找到匹配的文件夹</p>
+            </div>
+          </section>
+
+          <aside class="selection-panel" aria-label="快捷入口管理">
+            <div class="side-mode-tabs" role="tablist" aria-label="管理视图">
+              <button
+                class="side-mode-tab active"
+                id="orderTabButton"
+                type="button"
+                role="tab"
+                aria-selected="true"
+                aria-controls="orderView"
+              >
+                快捷顺序
+              </button>
+              <button
+                class="side-mode-tab"
+                id="usageTabButton"
+                type="button"
+                role="tab"
+                aria-selected="false"
+                aria-controls="usageView"
+              >
+                使用统计
+              </button>
+            </div>
+
+            <section class="side-view order-view" id="orderView" role="tabpanel" aria-labelledby="orderTabButton">
+              <div class="selection-heading">
+                <div>
+                  <p class="eyebrow">PINNED / MANUAL ORDER</p>
+                  <h2 id="selectionTitle">已置顶 <span id="pinnedCount">0</span></h2>
+                </div>
+                <button class="text-button" id="clearButton" type="button">清空</button>
+              </div>
+              <div class="selected-list" id="selectedList"></div>
+              <p class="selection-tip">
+                <span aria-hidden="true">↕</span>
+                拖动可手动排序；快捷轨中的顺序会立即更新
+              </p>
+            </section>
+
+            <section
+              class="side-view usage-view"
+              id="usageView"
+              role="tabpanel"
+              aria-labelledby="usageTabButton"
+              hidden
+            >
+              <div class="usage-heading">
+                <div>
+                  <p class="eyebrow">FOLDER FREQUENCY</p>
+                  <h2>文件夹使用次数</h2>
+                </div>
+                <div class="usage-summary" id="usageSummary">0 次 · 0 个文件夹</div>
+              </div>
+
+              <div class="usage-periods" role="group" aria-label="统计时间范围">
+                <button type="button" data-usage-period="day">天</button>
+                <button type="button" data-usage-period="week">周</button>
+                <button class="active" type="button" data-usage-period="month">月</button>
+              </div>
+
+              <p class="usage-range-label" id="usageRangeLabel">最近 30 天的文件夹切换</p>
+              <div class="usage-selection-toolbar">
+                <span>快捷轨已选 <strong id="usageSelectedCount">0</strong></span>
+                <div>
+                  <button id="selectAllUsageButton" type="button">全选</button>
+                  <button id="clearUsageSelectionButton" type="button">取消全选</button>
+                </div>
+              </div>
+              <div class="usage-list" id="usageList" aria-live="polite"></div>
+
+              <div class="usage-actions">
+                <p>
+                  <strong>点击顺序就是快捷轨顺序。</strong>
+                  再点一次可取消；“全选”会按当前使用排行加入。
+                </p>
+              </div>
+            </section>
+          </aside>
+        </div>
+
+        <footer class="manager-footer">
+          <p>
+            <span class="live-dot" aria-hidden="true"></span>
+            文件夹结构与使用次数会在本地自动同步，无需重新打开插件。
+          </p>
+          <div class="footer-actions">
+            <span id="saveState">更改自动保存</span>
+            <button class="done-button" id="doneButton" type="button">
+              完成
+              <svg viewBox="0 0 24 24"><path d="m7 12 3 3 7-7" /></svg>
+            </button>
+          </div>
+        </footer>
+      </section>
+
+      <div class="toast" id="toast" role="status" aria-live="polite"></div>
+    </main>
+
+    <script src="js/core.js"></script>
+    <script src="js/plugin.js"></script>
+  </body>
+</html>
