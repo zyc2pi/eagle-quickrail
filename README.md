@@ -33,7 +33,7 @@ Release 同时提供可直接安装的 `.eagleplugin` 文件和 GitHub 自动生
 ### 直接安装（推荐）
 
 1. 打开 [Releases](https://github.com/zyc2pi/eagle-quickrail/releases)，进入 `v1.0.0`。
-2. 下载 `文件夹快捷轨-v1.0.0.eagleplugin`。
+2. 下载 `Eagle-QuickRail-v1.0.0.eagleplugin`。
 3. 双击安装包，按 Eagle 提示完成安装。
 
 ### 导入源码

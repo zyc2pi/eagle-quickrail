@@ -6,7 +6,7 @@
 
 ### 下载与安装
 
-- 在 GitHub Release 的 Assets 中下载 `文件夹快捷轨-v1.0.0.eagleplugin`。
+- 在 GitHub Release 的 Assets 中下载 `Eagle-QuickRail-v1.0.0.eagleplugin`。
 - 双击安装包并按照 Eagle 提示完成安装。
 - 如需查看或修改源码，也可下载 GitHub 自动生成的 Source code 压缩包。
 
