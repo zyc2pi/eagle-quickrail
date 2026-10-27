@@ -50,10 +50,25 @@
 
         <div class="rail-actions no-drag">
           <button
+            class="icon-button add-current-button unavailable"
+            id="addCurrentButton"
+            type="button"
+            title="先在 Eagle 中选择一个文件夹"
+            aria-label="将当前选中文件夹加入快捷轨"
+            aria-disabled="true"
+            aria-pressed="false"
+          >
+            <svg viewBox="0 0 24 24">
+              <path d="M3.5 7h6l1.8 2h9.2v9H3.5z" />
+              <path d="M12 11.5v5M9.5 14h5" />
+            </svg>
+            <span class="state-dot"></span>
+          </button>
+          <button
             class="icon-button"
             id="dockButton"
             type="button"
-            title="联动吸附：移动 Eagle 或快捷轨时一起移动"
+            title="联动吸附：与 Eagle 等宽贴合，并同步窗口状态"
             aria-label="联动吸附"
           >
             <svg viewBox="0 0 24 24">

@@ -498,6 +498,30 @@ svg {
   color: var(--acid);
 }
 
+.add-current-button:not(.unavailable):not(.added) {
+  color: #dce8b9;
+}
+
+.add-current-button:not(.unavailable):not(.added):hover {
+  color: var(--acid);
+  border-color: rgba(201, 240, 77, 0.46);
+  background: rgba(201, 240, 77, 0.11);
+}
+
+.add-current-button.added {
+  color: var(--acid);
+}
+
+.add-current-button.unavailable {
+  color: var(--faint);
+  opacity: 0.52;
+}
+
+.add-current-button.unavailable:hover {
+  border-color: transparent;
+  background: transparent;
+}
+
 .icon-button svg {
   width: 17px;
   height: 17px;
@@ -514,7 +538,8 @@ svg {
   opacity: 0.35;
 }
 
-.icon-button.enabled .state-dot {
+.icon-button.enabled .state-dot,
+.add-current-button.added .state-dot {
   opacity: 1;
   box-shadow: 0 0 7px currentColor;
 }

@@ -17,6 +17,7 @@ test("linked docking is explicit and does not depend on Electron remote", () => 
   assert.match(pluginSource, /window-link\.ps1/);
   assert.match(pluginSource, /getNativeWindowHandle/);
   assert.doesNotMatch(pluginSource, /@electron\/remote/);
+  assert.doesNotMatch(pluginSource, /setResizable\((?:false|!state\.dockRestoreRequested)\)/);
 });
 
 test("linked docking preference survives startup races and helper restarts", () => {
@@ -107,6 +108,24 @@ test("manager exposes day, week, and month usage periods with click-order select
   assert.match(pluginSource, /function toggleUsageCandidate\(id\)/);
   assert.match(pluginSource, /Core\.togglePinned\(state\.pinnedIds,\s*id\)/);
   assert.doesNotMatch(indexHtml, /id="sortByUsageButton"/);
+});
+
+test("compact rail can append the currently selected Eagle folders", () => {
+  assert.match(indexHtml, /id="addCurrentButton"/);
+  assert.match(indexHtml, /将当前选中文件夹加入快捷轨/);
+
+  const addFunction = pluginSource.match(
+    /async function addSelectedFoldersToRail\(\)\s*\{[\s\S]*?\n  \}\n\n  function toggleItem/,
+  );
+  assert.ok(addFunction, "addSelectedFoldersToRail should exist");
+  assert.match(addFunction[0], /window\.eagle\.folder\.getSelected\(\)/);
+  assert.match(addFunction[0], /state\.pinnedIds\.concat\(addedIds\)/);
+  assert.match(addFunction[0], /savePinned\(\)/);
+  assert.match(addFunction[0], /renderAll\(\)/);
+  assert.match(
+    pluginSource,
+    /addCurrentButton\.addEventListener\("click", addSelectedFoldersToRail\)/,
+  );
 });
 
 test("rail items expose a safe right-click color and removal editor", () => {

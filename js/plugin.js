@@ -51,6 +51,7 @@
   };
 
   const elements = {
+    addCurrentButton: document.querySelector("#addCurrentButton"),
     appShell: document.querySelector("#appShell"),
     clearButton: document.querySelector("#clearButton"),
     clearUsageSelectionButton: document.querySelector("#clearUsageSelectionButton"),
@@ -114,7 +115,7 @@
     dockHelper: null,
     dockRetryAttempts: 0,
     dockRetryTimer: null,
-    dockRestoreRequested: readBoolean(STORAGE.linkedDocked, false),
+    dockRestoreRequested: readBoolean(STORAGE.linkedDocked, /Win/.test(navigator.platform)),
     dockStarting: false,
     expanded: false,
     folderMap: new Map(),
@@ -139,6 +140,7 @@
     rememberedSize: readWindowSize(),
     rendererIpc: undefined,
     resizeQueue: Promise.resolve(),
+    selectedFolderIds: [],
     sizeSaveTimer: null,
     syncInFlight: false,
     timers: [],
@@ -1063,6 +1065,70 @@
     updateControlStates();
   }
 
+  async function addSelectedFoldersToRail() {
+    if (!window.eagle || !window.eagle.folder) {
+      showToast("暂时无法读取 Eagle 文件夹", "error");
+      return;
+    }
+
+    try {
+      const selected = await window.eagle.folder.getSelected();
+      const selectedIds = Array.from(
+        new Set(
+          (Array.isArray(selected) ? selected : [])
+            .map((folder) => folder && folder.id)
+            .filter((id) => typeof id === "string" && id),
+        ),
+      );
+
+      if (selectedIds.some((id) => !state.folderMap.has(id))) {
+        await refreshLibrary(true);
+      }
+
+      const validIds = selectedIds.filter((id) => state.folderMap.has(id));
+      state.selectedFolderIds = validIds;
+      state.activeId = validIds.length === 1 ? validIds[0] : null;
+
+      if (validIds.length === 0) {
+        updateControlStates();
+        showToast("请先在 Eagle 中选择一个文件夹", "error");
+        return;
+      }
+
+      const pinnedSet = new Set(state.pinnedIds);
+      const addedIds = validIds.filter((id) => !pinnedSet.has(id));
+      if (addedIds.length === 0) {
+        renderAll();
+        showToast(
+          validIds.length === 1 ? "这个文件夹已在快捷轨中" : "选中的文件夹都已在快捷轨中",
+        );
+        return;
+      }
+
+      state.pinnedIds = Core.normalizePinned(
+        state.pinnedIds.concat(addedIds),
+        state.folderMap.keys(),
+      );
+      savePinned();
+      renderAll();
+      window.requestAnimationFrame(() => {
+        elements.pinnedList.scrollTo({
+          left: elements.pinnedList.scrollWidth,
+          behavior: "smooth",
+        });
+      });
+
+      if (addedIds.length === 1) {
+        showToast(`已加入快捷轨：${state.folderMap.get(addedIds[0]).name}`);
+      } else {
+        showToast(`已将 ${addedIds.length} 个文件夹加入快捷轨`);
+      }
+    } catch (error) {
+      console.error("[QuickRail] add selected folders failed", error);
+      showToast("添加失败，请重新选择文件夹后再试", "error");
+    }
+  }
+
   function toggleItem(id) {
     state.pinnedIds = Core.togglePinned(state.pinnedIds, id);
     savePinned();
@@ -1198,6 +1264,14 @@
     }
   }
 
+  function updateDockHeight() {
+    const helper = state.dockHelper;
+    if (helper && helper.ready && !helper.process.stdin.destroyed) {
+      const railHeight = Math.max(1, Math.round(elements.rail.getBoundingClientRect().height));
+      helper.process.stdin.write(`${JSON.stringify({ railHeight })}\n`);
+    }
+  }
+
   function clearDockRetry() {
     window.clearTimeout(state.dockRetryTimer);
     state.dockRetryTimer = null;
@@ -1259,10 +1333,12 @@
         scriptPath,
         "-PluginHandle",
         pluginHandle,
+        "-RailHeight",
+        String(Math.max(1, Math.round(elements.rail.getBoundingClientRect().height))),
       ],
       {
         windowsHide: true,
-        stdio: ["ignore", "pipe", "pipe"],
+        stdio: ["pipe", "pipe", "pipe"],
       },
     );
     const helper = {
@@ -1271,6 +1347,10 @@
       ready: false,
     };
     state.dockHelper = helper;
+    child.stdin.on("error", (error) => {
+      // The native helper can exit between a resize event and this write.
+      console.warn("[QuickRail] dock settings unavailable", error);
+    });
 
     await new Promise((resolve, reject) => {
       let errorOutput = "";
@@ -1287,6 +1367,7 @@
         settled = true;
         helper.ready = true;
         window.clearTimeout(timeout);
+        updateDockHeight();
         resolve(report);
       }
 
@@ -1309,20 +1390,26 @@
       child.stderr.setEncoding("utf8");
       child.stdout.on("data", (chunk) => {
         output += chunk;
-        const lineEnd = output.indexOf("\n");
-        if (lineEnd < 0) {
-          return;
-        }
-
-        const line = output.slice(0, lineEnd).trim();
-        try {
-          const report = JSON.parse(line);
-          if (!report || report.ok !== true) {
-            throw new Error("联动助手未能完成初始化");
+        let lineEnd;
+        while ((lineEnd = output.indexOf("\n")) >= 0) {
+          const line = output.slice(0, lineEnd).trim();
+          output = output.slice(lineEnd + 1);
+          try {
+            const report = JSON.parse(line);
+            if (report.event === "host-closed") {
+              helper.intentional = true;
+              state.docked = false;
+              clearDockRetry();
+              updateControlStates();
+              continue;
+            }
+            if (!report || report.ok !== true) {
+              throw new Error("联动助手未能完成初始化");
+            }
+            finishReady(report);
+          } catch (error) {
+            fail(error);
           }
-          finishReady(report);
-        } catch (error) {
-          fail(error);
         }
       });
       child.stderr.on("data", (chunk) => {
@@ -1364,6 +1451,7 @@
       persistBoolean(STORAGE.linkedDocked, false);
       clearDockRetry();
       stopDockHelper();
+      await window.eagle.window.setResizable(true);
       updateControlStates();
       return true;
     }
@@ -1382,6 +1470,12 @@
     updateControlStates();
     try {
       await startDockHelper();
+      if (!state.dockRestoreRequested) {
+        stopDockHelper();
+        return false;
+      }
+      // Windows must allow programmatic resizing for the native dock helper.
+      await window.eagle.window.setResizable(true);
       state.docked = true;
       clearDockRetry();
       return true;
@@ -1581,9 +1675,31 @@
     } catch (error) {
       console.warn("[QuickRail] enable window resize failed", error);
     }
+    updateDockHeight();
   }
 
   function updateControlStates() {
+    const selectedIds = state.selectedFolderIds.filter((id) => state.folderMap.has(id));
+    const allAdded =
+      selectedIds.length > 0 && selectedIds.every((id) => state.pinnedIds.includes(id));
+    const selectedNames = selectedIds
+      .map((id) => state.folderMap.get(id))
+      .filter(Boolean)
+      .map((folder) => folder.name);
+    elements.addCurrentButton.classList.toggle("unavailable", selectedIds.length === 0);
+    elements.addCurrentButton.classList.toggle("added", allAdded);
+    elements.addCurrentButton.setAttribute("aria-disabled", String(selectedIds.length === 0));
+    elements.addCurrentButton.setAttribute("aria-pressed", String(allAdded));
+    elements.addCurrentButton.title =
+      selectedIds.length === 0
+        ? "先在 Eagle 中选择一个文件夹"
+        : allAdded
+          ? selectedIds.length === 1
+            ? `${selectedNames[0]} 已在快捷轨中`
+            : "选中的文件夹都已在快捷轨中"
+          : selectedIds.length === 1
+            ? `将 ${selectedNames[0]} 加入快捷轨`
+            : `将选中的 ${selectedIds.length} 个文件夹加入快捷轨`;
     const reconnecting = state.dockRestoreRequested && !state.docked;
     elements.dockButton.classList.toggle("enabled", state.dockRestoreRequested);
     elements.dockButton.classList.toggle("reconnecting", reconnecting);
@@ -1593,8 +1709,8 @@
       : reconnecting
         ? "联动吸附已开启，正在自动重连；点击可关闭"
         : state.docked
-        ? "联动吸附已开启：移动 Eagle 或快捷轨时一起移动；点击解除"
-        : "联动吸附：移动 Eagle 或快捷轨时一起移动";
+        ? "已与 Eagle 等宽贴合，拖动、最小化和关闭同步；点击解除"
+        : "联动吸附：与 Eagle 等宽贴合，并同步窗口状态";
     elements.topmostButton.classList.toggle("enabled", state.topmost);
     elements.topmostButton.title = state.topmost ? "已在系统最前方，点击取消" : "保持在其他窗口前方";
   }
@@ -1694,13 +1810,24 @@
 
     try {
       const selected = await window.eagle.folder.getSelected();
+      const nextSelectedIds = Array.from(
+        new Set(
+          (Array.isArray(selected) ? selected : [])
+            .map((folder) => folder && folder.id)
+            .filter((id) => typeof id === "string" && state.folderMap.has(id)),
+        ),
+      );
+      const selectionChanged =
+        nextSelectedIds.join("\u0000") !== state.selectedFolderIds.join("\u0000");
       let nextActive = null;
 
-      if (Array.isArray(selected) && selected.length === 1 && selected[0]) {
-        nextActive = selected[0].id;
+      if (nextSelectedIds.length === 1) {
+        nextActive = nextSelectedIds[0];
       } else if (Date.now() - state.lastAllClickAt < 4000) {
         nextActive = Core.ALL_ID;
       }
+
+      state.selectedFolderIds = nextSelectedIds;
 
       const observation = Core.observeFolderSelection(
         state.lastObservedFolderId,
@@ -1722,6 +1849,9 @@
         } else {
           renderPinned();
         }
+      }
+      if (selectionChanged) {
+        updateControlStates();
       }
     } catch (_error) {
       // Selection can be transient while a library is changing.
@@ -1753,6 +1883,7 @@
     loadPinWidths();
     loadCollapsed();
     loadUsage();
+    state.selectedFolderIds = [];
     state.hasObservedFolder = false;
     state.lastObservedFolderId = null;
   }
@@ -1781,6 +1912,7 @@
     elements.rail.addEventListener("lostpointercapture", (event) =>
       finishWindowDrag(event.pointerId),
     );
+    elements.addCurrentButton.addEventListener("click", addSelectedFoldersToRail);
     elements.manageButton.addEventListener("click", () => setManagerOpen(!state.expanded));
     elements.doneButton.addEventListener("click", () => setManagerOpen(false));
     elements.hideButton.addEventListener("click", async () => {
@@ -1951,6 +2083,7 @@
 
     window.addEventListener("resize", () => {
       updateScrollNudges();
+      updateDockHeight();
       scheduleWindowSizeSave();
     });
   }
