@@ -7,7 +7,7 @@
 **一条贴在 Eagle 主窗口顶部的实时文件夹快捷栏。**<br />
 适合文件夹层级很深、经常在几个目录之间来回切换的资源库。
 
-[![Version](https://img.shields.io/badge/version-v1.1.0-c9f04d?style=flat-square&labelColor=151714)](https://github.com/zyc2pi/eagle-quickrail/releases)
+[![Version](https://img.shields.io/badge/version-v1.2.0-c9f04d?style=flat-square&labelColor=151714)](https://github.com/zyc2pi/eagle-quickrail/releases)
 [![Eagle](https://img.shields.io/badge/Eagle-4.0%20Build%2018%2B-ff8b48?style=flat-square&labelColor=151714)](https://eagle.cool)
 [![License](https://img.shields.io/badge/license-MIT-969b91?style=flat-square&labelColor=151714)](LICENSE)
 [![Tests](https://img.shields.io/badge/tests-node%20--test-4d86d9?style=flat-square&labelColor=151714)](#开发与验证)
@@ -73,7 +73,7 @@
 ### 直接安装（推荐）
 
 1. 打开 [Releases](https://github.com/zyc2pi/eagle-quickrail/releases)，进入最新版本。
-2. 下载 `Eagle-QuickRail-v1.1.0.eagleplugin`。
+2. 下载 `Eagle-QuickRail-v1.2.0.eagleplugin`。
 3. 双击安装包，按 Eagle 提示完成安装。
 
 ### 导入源码
